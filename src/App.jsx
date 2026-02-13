@@ -11,6 +11,60 @@ const heroImage = new URL("../media/image.png", import.meta.url).href;
 const PASSWORD = "myliu";
 const STORAGE_KEY = "meiles-kelione-unlocked";
 
+// CAROUSEL COMPONENT
+function MediaCarousel({ media, alt, className, onImageClick, heightClass = "timeline-media" }) {
+  const [index, setIndex] = useState(0);
+
+  // Reset index if media changes (e.g. reused component in map)
+  useEffect(() => {
+    setIndex(0);
+  }, [media]);
+
+  if (!media || media.length === 0) return null;
+
+  const currentSrc = media[index];
+  const hasMultiple = media.length > 1;
+
+  const handleImageClick = (e) => {
+    // If a custom click handler is passed, use it
+    if (onImageClick) {
+      onImageClick(currentSrc);
+    }
+  };
+
+  const next = (e) => {
+    e.stopPropagation();
+    setIndex((prev) => (prev + 1) % media.length);
+  };
+
+  const prev = (e) => {
+    e.stopPropagation();
+    setIndex((prev) => (prev - 1 + media.length) % media.length);
+  };
+  
+  return (
+    <div className={`carousel-wrapper ${className || ""}`}>
+       <img 
+         src={currentSrc} 
+         alt={alt} 
+         className={heightClass} 
+         onClick={handleImageClick} 
+       />
+       {hasMultiple && (
+         <>
+           <button className="carousel-btn prev" onClick={prev} type="button">‹</button>
+           <button className="carousel-btn next" onClick={next} type="button">›</button>
+           <div className="carousel-dots">
+             {media.map((_, i) => (
+               <span key={i} className={`dot ${i === index ? "active" : ""}`} />
+             ))}
+           </div>
+         </>
+       )}
+    </div>
+  );
+}
+
 // Helper to resolve media files
 // Note: In Vite, we can relying on the server to serve files from /media if it's in public or root
 // But here the structure says media/ is at root. 
@@ -68,7 +122,7 @@ const rawLocations = [
   },
   {
     id: "2", title: "Apsishoppinom", date: "2024-11-10", text: "Kieta panelė",
-    coords: null, media: [getMedia("IMG_20241110_151343.jpg")]
+    coords: [54.7106853163931, 25.26491320950711], media: [getMedia("IMG_20241110_151343.jpg")]
   },
   {
     id: "3", title: "Čia tapome pora", date: "2024-11-10", text: "Ir netoli buvo pirmas bučinys su burito skoniu.",
@@ -88,7 +142,7 @@ const rawLocations = [
   },
   {
     id: "7", title: "Grindinam", date: "2024-12-31", text: "Plankas į naujus metus",
-    coords: null, media: [getMedia("IMG_20241231_123400.jpg")]
+    coords: [55.691429360236086, 21.15076123423581], media: [getMedia("IMG_20241231_123400.jpg")]
   },
   {
     id: "8", title: "Ant pasaulio krašto", date: "2025-02-12", text: "Kažkas atvarė į Portugaliją.",
@@ -234,6 +288,7 @@ function App() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
+  const [fullscreenImage, setFullscreenImage] = useState(null);
   const mapRef = useRef(null);
   const markerRefs = useRef({});
   
@@ -389,6 +444,14 @@ function App() {
 
   return (
     <div className="page">
+      {fullscreenImage && (
+        <div className="lightbox-overlay" onClick={() => setFullscreenImage(null)}>
+          <div className="lightbox-content" onClick={e => e.stopPropagation()}>
+            <button className="lightbox-close" onClick={() => setFullscreenImage(null)}>&times;</button>
+            <img src={fullscreenImage} alt="Fullscreen" className="lightbox-image" />
+          </div>
+        </div>
+      )}
       <div className="ambient" aria-hidden="true" />
       {!isUnlocked && (
         <div className="gate" role="dialog" aria-modal="true" aria-labelledby="gate-title">
@@ -431,7 +494,9 @@ function App() {
           <div ref={horizontalTrackRef} className="timeline-track">
             {timelineEvents.map((event) => {
               const location = locationsById[event.locationId];
-              const mediaSrc = location ? (location.media && location.media.length > 0 ? location.media[0] : location.photo) : null;
+              const mediaList = location ? (location.media ? location.media : (location.photo ? [location.photo] : [])) : [];
+              const isVideo = location && location.isVideo;
+              const videoSrc = isVideo && mediaList.length > 0 ? mediaList[0] : null;
               
               return (
               <div key={event.id} className="timeline-item">
@@ -445,10 +510,10 @@ function App() {
                     type="button"
                     onClick={() => handleTimelineClick(event)}
                   >
-                    {mediaSrc && (
-                       location.isVideo ? 
-                       <video src={mediaSrc} className="timeline-media" muted loop playsInline onMouseOver={e => e.target.play()} onMouseOut={e => e.target.pause()} /> 
-                       : <img src={mediaSrc} alt={event.title} className="timeline-media" />
+                    {isVideo && videoSrc ? (
+                       <video src={videoSrc} className="timeline-media" muted loop playsInline onMouseOver={e => e.target.play()} onMouseOut={e => e.target.pause()} /> 
+                    ) : (
+                       mediaList.length > 0 && <MediaCarousel media={mediaList} alt={event.title} />
                     )}
                     <h3>{event.title}</h3>
                     <p>{event.text}</p>
@@ -458,8 +523,8 @@ function App() {
                   </button>
                 ) : (
                   <div className="timeline-card">
-                    {mediaSrc && (
-                       <img src={mediaSrc} alt={event.title} className="timeline-media" />
+                    {mediaList.length > 0 && (
+                       <MediaCarousel media={mediaList} alt={event.title} />
                     )}
                     <h3>{event.title}</h3>
                     <p>{event.text}</p>
@@ -545,7 +610,7 @@ function App() {
                         }
                       }}
                     >
-                      <Popup maxWidth={300}>
+                      <Popup maxWidth={isMapFullscreen ? 800 : 300} className={isMapFullscreen ? "fullscreen-popup" : ""}>
                         <div className="popup-content">
                           {location.isVideo ? (
                             <video
@@ -557,21 +622,21 @@ function App() {
                               playsInline
                             />
                           ) : (
-                            <div className="popup-gallery">
-                              {location.media && location.media.length > 1 ? (
-                                <div className="popup-slides">
-                                  {location.media.map((src, i) => (
-                                    <img key={i} className="popup-image" src={src} alt={`${location.title} ${i + 1}`} />
-                                  ))}
-                                </div>
-                              ) : (
-                                <img
-                                  className="popup-image"
-                                  src={location.media ? location.media[0] : location.photo}
-                                  alt={location.title}
-                                />
-                              )}
-                            </div>
+                             location.media && location.media.length > 0 ? (
+                               <MediaCarousel 
+                                 media={location.media} 
+                                 alt={location.title} 
+                                 heightClass="popup-image" 
+                                 onImageClick={(src) => setFullscreenImage(src)}
+                               />
+                             ) : (
+                               <img
+                                 className="popup-image"
+                                 src={location.photo}
+                                 alt={location.title}
+                                 onClick={() => setFullscreenImage(location.photo)}
+                               />
+                             )
                           )}
                           <strong>{location.title}</strong>
                           <span>{location.date}</span>
