@@ -49,6 +49,8 @@ function MediaCarousel({ media, alt, className, onImageClick, heightClass = "tim
          alt={alt} 
          className={heightClass} 
          onClick={handleImageClick} 
+         loading="lazy"
+         decoding="async"
        />
        {hasMultiple && (
          <>
@@ -313,53 +315,73 @@ function App() {
     if (!stickySection || !track) return undefined;
 
     let AnimationFrameId;
+    let cachedMetrics = {
+        offsetTop: 0,
+        maxScroll: 0,
+        translateMax: 0
+    };
 
-    const handleScroll = () => {
+    const calculateMetrics = () => {
       const offsetTop = stickySection.offsetTop;
-      const scrollY = window.scrollY;
       const viewportHeight = window.innerHeight;
-      
-      // Calculate how far we've scrolled into the sticky section
-      // We start transforming when the section hits the top
-      const distance = scrollY - offsetTop;
+      const sectionHeight = stickySection.offsetHeight;
       
       // The total scrollable distance is the section's height minus the viewport height
-      // (because the content sticks for that duration)
-      const maxScroll = stickySection.offsetHeight - viewportHeight;
+      const contentHeight = sectionHeight - viewportHeight;
       
-      if (maxScroll <= 0) return;
-
-      let percentage = distance / maxScroll;
-      percentage = Math.max(0, Math.min(percentage, 1));
-      
-      // The track needs to move left by (track width - viewport width) * percentage
-      // We add a little padding logic or just raw calculation
       const trackWidth = track.scrollWidth;
       const viewportWidth = window.innerWidth;
       const translateMax = trackWidth - viewportWidth + 200; // +200 for padding end
       
-      if (translateMax <= 0) {
-        track.style.transform = `translateX(0px)`;
+      cachedMetrics = {
+          offsetTop,
+          maxScroll: contentHeight,
+          translateMax
+      };
+    };
+
+    const handleScroll = () => {
+      const scrollY = window.scrollY;
+      const { offsetTop, maxScroll, translateMax } = cachedMetrics;
+      
+      if (maxScroll <= 0 || translateMax <= 0) {
+        if (track.style.transform !== "translate3d(0px, 0, 0)") {
+            track.style.transform = "translate3d(0px, 0, 0)";
+        }
         return;
       }
+
+      const distance = scrollY - offsetTop;
+      let percentage = distance / maxScroll;
+      percentage = Math.max(0, Math.min(percentage, 1));
       
       const translateX = -(percentage * translateMax);
-      track.style.transform = `translateX(${translateX}px)`;
+      // Use translate3d for GPU acceleration
+      track.style.transform = `translate3d(${translateX}px, 0, 0)`;
     };
+    
+    // Initial calculation
+    calculateMetrics();
 
     const onScroll = () => {
       if (AnimationFrameId) cancelAnimationFrame(AnimationFrameId);
       AnimationFrameId = requestAnimationFrame(handleScroll);
     };
 
+    const onResize = () => {
+        calculateMetrics();
+        handleScroll();
+    };
+
     window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    // Initial call
-    onScroll();
+    window.addEventListener("resize", onResize);
+    
+    // Trigger initial scroll update
+    handleScroll();
 
     return () => {
       window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
+      window.removeEventListener("resize", onResize);
       if (AnimationFrameId) cancelAnimationFrame(AnimationFrameId);
     };
   }, [timelineEvents]);
@@ -511,7 +533,16 @@ function App() {
                     onClick={() => handleTimelineClick(event)}
                   >
                     {isVideo && videoSrc ? (
-                       <video src={videoSrc} className="timeline-media" muted loop playsInline onMouseOver={e => e.target.play()} onMouseOut={e => e.target.pause()} /> 
+                       <video 
+                         src={videoSrc} 
+                         className="timeline-media" 
+                         muted 
+                         loop 
+                         playsInline 
+                         preload="metadata"
+                         onMouseOver={e => e.target.play()} 
+                         onMouseOut={e => e.target.pause()} 
+                       /> 
                     ) : (
                        mediaList.length > 0 && <MediaCarousel media={mediaList} alt={event.title} />
                     )}
