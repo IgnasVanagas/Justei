@@ -20,14 +20,14 @@ const EMPTY_BOOKING = {
 };
 
 const dateActivities = [
-  "Romantiška vakarienė",
-  "Pasivaikščiojimas",
-  "Dviračių išvyka",
-  "Kinas",
-  "Piknikas",
-  "Kelionė arba nuotykis",
-  "Stalo žaidimų vakaras",
-  "Staigmena",
+  { label: "Romantiška vakarienė", icon: "✦" },
+  { label: "Pasivaikščiojimas", icon: "↗" },
+  { label: "Dviračių išvyka", icon: "∞" },
+  { label: "Kinas", icon: "▶" },
+  { label: "Piknikas", icon: "☀" },
+  { label: "Kelionė arba nuotykis", icon: "⌁" },
+  { label: "Stalo žaidimų vakaras", icon: "◇" },
+  { label: "Staigmena", icon: "♡" },
 ];
 
 const getLocalDate = () => {
@@ -35,6 +35,7 @@ const getLocalDate = () => {
   const localTime = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
   return localTime.toISOString().slice(0, 10);
 };
+const MIN_BOOKING_DATE = getLocalDate();
 
 // CAROUSEL COMPONENT
 function MediaCarousel({ media, alt, className, onImageClick, heightClass = "timeline-media" }) {
@@ -676,6 +677,9 @@ function App() {
       <header className="hero">
         <h1 className="hero-simple-title">Mūsų Kelionė</h1>
         <img className="hero-image" src={heroImage} alt="Mūsų kelionė" />
+        <a className="hero-booking-link" href="#pasimatymas">
+          Rezervuoti pasimatymą <span aria-hidden="true">♡</span>
+        </a>
       </header>
 
       <div ref={stickySectionRef} className="timeline-container">
@@ -738,82 +742,150 @@ function App() {
       <main>
 
         <section className="booking-section" id="pasimatymas">
-          <div className="section-title booking-title">
-            <p className="booking-eyebrow">Laikas mums</p>
-            <h2>Rezervuok pasimatymą</h2>
-            <p>Išsirink datą, laiką ir ką norėtum nuveikti kartu.</p>
-          </div>
-          <form className="booking-card" onSubmit={handleBookingSubmit}>
-            <div className="booking-grid">
-              <label className="booking-field">
-                <span>Data</span>
-                <input
-                  type="date"
-                  name="date"
-                  min={getLocalDate()}
-                  value={booking.date}
-                  onChange={handleBookingChange}
-                  required
-                />
-              </label>
-              <label className="booking-field">
-                <span>Laikas</span>
-                <input
-                  type="time"
-                  name="time"
-                  value={booking.time}
-                  onChange={handleBookingChange}
-                  required
-                />
-              </label>
-              <label className="booking-field booking-field--wide">
-                <span>Veikla</span>
-                <select
-                  name="activity"
-                  value={booking.activity}
-                  onChange={handleBookingChange}
-                  required
-                >
-                  <option value="" disabled>Pasirink veiklą</option>
+          <div className="booking-shell">
+            <aside className="booking-intro">
+              <div>
+                <p className="booking-eyebrow">Kitas mūsų nuotykis</p>
+                <h2>Susikurkime<br />laiko kartu.</h2>
+                <p className="booking-intro-copy">
+                  Kelios minutės planavimo, viena graži diena prisiminimuose.
+                </p>
+              </div>
+              <div className="booking-orbit" aria-hidden="true">
+                <span className="booking-orbit-ring" />
+                <span className="booking-orbit-heart">♡</span>
+                <span className="booking-orbit-note">tik mudu</span>
+              </div>
+              <div className="booking-benefits">
+                <p><span>01</span> Pasirenki, kada</p>
+                <p><span>02</span> Išsirenki veiklą</p>
+                <p><span>03</span> Aš gaunu priminimą</p>
+              </div>
+            </aside>
+
+            <form className="booking-panel" onSubmit={handleBookingSubmit}>
+              <div className="booking-panel-header">
+                <div>
+                  <span className="booking-panel-kicker">Nauja rezervacija</span>
+                  <h3>Suplanuok pasimatymą</h3>
+                </div>
+                <span className="booking-step-count">3 žingsniai</span>
+              </div>
+
+              <fieldset className="booking-step">
+                <legend>
+                  <span className="booking-step-number">01</span>
+                  <span>Kada susitinkam?</span>
+                </legend>
+                <div className="booking-when-grid">
+                  <label className="booking-field">
+                    <span>Data</span>
+                    <input
+                      type="date"
+                      name="date"
+                      min={MIN_BOOKING_DATE}
+                      value={booking.date}
+                      onChange={handleBookingChange}
+                      required
+                    />
+                  </label>
+                  <label className="booking-field">
+                    <span>Laikas</span>
+                    <input
+                      type="time"
+                      name="time"
+                      value={booking.time}
+                      onChange={handleBookingChange}
+                      required
+                    />
+                  </label>
+                </div>
+              </fieldset>
+
+              <fieldset className="booking-step">
+                <legend>
+                  <span className="booking-step-number">02</span>
+                  <span>Ką veikiam?</span>
+                </legend>
+                <div className="activity-grid">
                   {dateActivities.map((activity) => (
-                    <option key={activity} value={activity}>{activity}</option>
+                    <label
+                      className={`activity-option ${booking.activity === activity.label ? "activity-option--selected" : ""}`}
+                      key={activity.label}
+                    >
+                      <input
+                        type="radio"
+                        name="activity"
+                        value={activity.label}
+                        checked={booking.activity === activity.label}
+                        onChange={handleBookingChange}
+                        required
+                      />
+                      <span className="activity-icon" aria-hidden="true">{activity.icon}</span>
+                      <span className="activity-name">{activity.label}</span>
+                      <span className="activity-check" aria-hidden="true">✓</span>
+                    </label>
                   ))}
-                </select>
-              </label>
-              <label className="booking-field booking-field--wide">
-                <span>Palinkėjimas arba detalės <small>(nebūtina)</small></span>
-                <textarea
-                  name="notes"
-                  rows="4"
-                  maxLength="1000"
-                  value={booking.notes}
+                </div>
+              </fieldset>
+
+              <fieldset className="booking-step booking-step--last">
+                <legend>
+                  <span className="booking-step-number">03</span>
+                  <span>Dar kas nors?</span>
+                </legend>
+                <label className="booking-field">
+                  <span>Palinkėjimas arba detalės <small>nebūtina</small></span>
+                  <textarea
+                    name="notes"
+                    rows="3"
+                    maxLength="1000"
+                    value={booking.notes}
+                    onChange={handleBookingChange}
+                    placeholder="Susitikimo vieta, apranga ar maža užuomina…"
+                  />
+                </label>
+              </fieldset>
+
+              <div className="booking-summary" aria-live="polite">
+                <div>
+                  <span>Data</span>
+                  <strong>{booking.date || "Nepasirinkta"}</strong>
+                </div>
+                <div>
+                  <span>Laikas</span>
+                  <strong>{booking.time || "--:--"}</strong>
+                </div>
+                <div className="booking-summary-activity">
+                  <span>Veikla</span>
+                  <strong>{booking.activity || "Dar renkiesi"}</strong>
+                </div>
+              </div>
+
+              <label className="booking-honeypot" aria-hidden="true">
+                Website
+                <input
+                  type="text"
+                  name="website"
+                  value={booking.website}
                   onChange={handleBookingChange}
-                  placeholder="Kur susitinkam, ką pasiimti ar kuo nustebinti?"
+                  tabIndex="-1"
+                  autoComplete="off"
                 />
               </label>
-            </div>
-            <label className="booking-honeypot" aria-hidden="true">
-              Website
-              <input
-                type="text"
-                name="website"
-                value={booking.website}
-                onChange={handleBookingChange}
-                tabIndex="-1"
-                autoComplete="off"
-              />
-            </label>
-            <button className="booking-submit" type="submit" disabled={isBooking}>
-              {isBooking ? "Rezervuojama…" : "Rezervuoti pasimatymą"}
-            </button>
-            <p
-              className={`booking-status booking-status--${bookingStatus.type}`}
-              role={bookingStatus.type === "error" ? "alert" : "status"}
-              aria-live="polite"
-            >
-              {bookingStatus.message}
-            </p>
-          </form>
+              <button className="booking-submit" type="submit" disabled={isBooking}>
+                <span>{isBooking ? "Rezervuojama…" : "Patvirtinti pasimatymą"}</span>
+                <span className="booking-submit-icon" aria-hidden="true">→</span>
+              </button>
+              <p
+                className={`booking-status booking-status--${bookingStatus.type}`}
+                role={bookingStatus.type === "error" ? "alert" : "status"}
+                aria-live="polite"
+              >
+                {bookingStatus.message}
+              </p>
+            </form>
+          </div>
         </section>
 
         <section className="map-section" id="zemelapis">
