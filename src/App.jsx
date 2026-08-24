@@ -10,6 +10,31 @@ const heroImage = new URL("../media/image.png", import.meta.url).href;
 
 const PASSWORD = "myliu";
 const STORAGE_KEY = "meiles-kelione-unlocked";
+const BOOKING_API_URL = import.meta.env.VITE_BOOKING_API_URL || "/api/book-date";
+const EMPTY_BOOKING = {
+  date: "",
+  time: "",
+  activity: "",
+  notes: "",
+  website: "",
+};
+
+const dateActivities = [
+  "Romantiška vakarienė",
+  "Pasivaikščiojimas",
+  "Dviračių išvyka",
+  "Kinas",
+  "Piknikas",
+  "Kelionė arba nuotykis",
+  "Stalo žaidimų vakaras",
+  "Staigmena",
+];
+
+const getLocalDate = () => {
+  const now = new Date();
+  const localTime = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
+  return localTime.toISOString().slice(0, 10);
+};
 
 // CAROUSEL COMPONENT
 function MediaCarousel({ media, alt, className, onImageClick, heightClass = "timeline-media" }) {
@@ -390,6 +415,9 @@ function App() {
   const [error, setError] = useState("");
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
   const [fullscreenImage, setFullscreenImage] = useState(null);
+  const [booking, setBooking] = useState(EMPTY_BOOKING);
+  const [bookingStatus, setBookingStatus] = useState({ type: "idle", message: "" });
+  const [isBooking, setIsBooking] = useState(false);
   const mapRef = useRef(null);
   const markerRefs = useRef({});
   
@@ -563,6 +591,47 @@ function App() {
     setIsMapFullscreen((prev) => !prev);
   };
 
+  const handleBookingChange = (event) => {
+    const { name, value } = event.target;
+    setBooking((current) => ({ ...current, [name]: value }));
+
+    if (bookingStatus.type !== "idle") {
+      setBookingStatus({ type: "idle", message: "" });
+    }
+  };
+
+  const handleBookingSubmit = async (event) => {
+    event.preventDefault();
+    setIsBooking(true);
+    setBookingStatus({ type: "idle", message: "" });
+
+    try {
+      const response = await fetch(BOOKING_API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(booking),
+      });
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(result.error || "Rezervacijos išsiųsti nepavyko.");
+      }
+
+      setBooking(EMPTY_BOOKING);
+      setBookingStatus({
+        type: "success",
+        message: "Pasimatymas rezervuotas! Pranešimas sėkmingai išsiųstas. 💌",
+      });
+    } catch (bookingError) {
+      setBookingStatus({
+        type: "error",
+        message: bookingError.message || "Nepavyko rezervuoti. Pabandykite dar kartą.",
+      });
+    } finally {
+      setIsBooking(false);
+    }
+  };
+
   return (
     <div className="page">
       {fullscreenImage && (
@@ -667,6 +736,85 @@ function App() {
       </div>
 
       <main>
+
+        <section className="booking-section" id="pasimatymas">
+          <div className="section-title booking-title">
+            <p className="booking-eyebrow">Laikas mums</p>
+            <h2>Rezervuok pasimatymą</h2>
+            <p>Išsirink datą, laiką ir ką norėtum nuveikti kartu.</p>
+          </div>
+          <form className="booking-card" onSubmit={handleBookingSubmit}>
+            <div className="booking-grid">
+              <label className="booking-field">
+                <span>Data</span>
+                <input
+                  type="date"
+                  name="date"
+                  min={getLocalDate()}
+                  value={booking.date}
+                  onChange={handleBookingChange}
+                  required
+                />
+              </label>
+              <label className="booking-field">
+                <span>Laikas</span>
+                <input
+                  type="time"
+                  name="time"
+                  value={booking.time}
+                  onChange={handleBookingChange}
+                  required
+                />
+              </label>
+              <label className="booking-field booking-field--wide">
+                <span>Veikla</span>
+                <select
+                  name="activity"
+                  value={booking.activity}
+                  onChange={handleBookingChange}
+                  required
+                >
+                  <option value="" disabled>Pasirink veiklą</option>
+                  {dateActivities.map((activity) => (
+                    <option key={activity} value={activity}>{activity}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="booking-field booking-field--wide">
+                <span>Palinkėjimas arba detalės <small>(nebūtina)</small></span>
+                <textarea
+                  name="notes"
+                  rows="4"
+                  maxLength="1000"
+                  value={booking.notes}
+                  onChange={handleBookingChange}
+                  placeholder="Kur susitinkam, ką pasiimti ar kuo nustebinti?"
+                />
+              </label>
+            </div>
+            <label className="booking-honeypot" aria-hidden="true">
+              Website
+              <input
+                type="text"
+                name="website"
+                value={booking.website}
+                onChange={handleBookingChange}
+                tabIndex="-1"
+                autoComplete="off"
+              />
+            </label>
+            <button className="booking-submit" type="submit" disabled={isBooking}>
+              {isBooking ? "Rezervuojama…" : "Rezervuoti pasimatymą"}
+            </button>
+            <p
+              className={`booking-status booking-status--${bookingStatus.type}`}
+              role={bookingStatus.type === "error" ? "alert" : "status"}
+              aria-live="polite"
+            >
+              {bookingStatus.message}
+            </p>
+          </form>
+        </section>
 
         <section className="map-section" id="zemelapis">
           <div className="map-header">
