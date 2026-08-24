@@ -114,7 +114,27 @@ const timelineEvents = [
   { id: "29", date: "2026-01-01", title: "Nauji metai", text: "Šį kartą be planko", locationId: "29" },
   { id: "30", date: "2026-01-16", title: "Vintedo pirkiniai", text: "Ir smagūs vakarai kartu", locationId: "30" },
   { id: "31", date: "2026-01-31", title: "Grybukas", text: "<3", locationId: "31" },
-  { id: "32", date: "2026-02-14", title: "Šiandien", text: "Ir visada kartu. Myliu tave", locationId: "32" },
+  { id: "33", date: "2026-04-18", title: "Dviratininkai", text: "Ruošiamės tour de france", locationId: "33" },
+  { id: "34", date: "2026-04-18", title: "Pasipuošę", text: "Su savo meile", locationId: "34" },
+  { id: "35", date: "2026-04-18", title: "Naujas perukas", text: "Tik kakta išlindus", locationId: "35" },
+  { id: "36", date: "2026-04-21", title: "Žuviukai", text: "Reik grįžt į akvariumą", locationId: "36" },
+  { id: "37", date: "2026-04-28", title: "Alkana", text: "Tuoj mane suvalgys", locationId: "37" },
+  { id: "38", date: "2026-05-23", title: "Cirkas", text: "Du klounai", locationId: "38" },
+  { id: "39", date: "2026-06-09", title: "Pasivaikščiojimas", text: "Kartu leidžiam vasarą", locationId: "39" },
+  { id: "40", date: "2026-06-26", title: "Baigtas univeras", text: "Naujas etapas kartu", locationId: "40" },
+  { id: "41", date: "2026-06-28", title: "Rajoniniai", text: "Einam muštis", locationId: "41" },
+  { id: "42", date: "2026-07-08", title: "Palangoj", text: "Ruošiamės treniruotei", locationId: "42" },
+  { id: "43", date: "2026-07-09", title: "Prie jūros", text: "Degintis nepavyko", locationId: "43" },
+  { id: "44", date: "2026-08-01", title: "Skrendam", text: "Sleepy sleepy", locationId: "44" },
+  { id: "45", date: "2026-08-01", title: "Pusrytukai", text: "Tam agurkui šakės", locationId: "45" },
+  { id: "46", date: "2026-08-02", title: "Nuostabūs vaizdai", text: "Kurių nesimato", locationId: "46" },
+  { id: "47", date: "2026-08-02", title: "Plaukiam", text: "Šį kartą raktai liko", locationId: "47" },
+  { id: "48", date: "2026-08-02", title: "Prie upės", text: "<3", locationId: "48" },
+  { id: "49", date: "2026-08-02", title: "Urve", text: "Akys išpūstos", locationId: "49" },
+  { id: "50", date: "2026-08-06", title: "Pradedam lipti", text: "Bet kelio neradom", locationId: "50" },
+  { id: "51", date: "2026-08-06", title: "Meilė tarp kalnų", text: "Su tavim visur gera", locationId: "51" },
+  { id: "52", date: "2026-08-07", title: "Džiaugiamės kalnais", text: "Naujas aukščio rekordas abiem", locationId: "52" },
+  { id: "53", date: "2026-08-11", title: "Rainbow kalnai", text: "O Ignas čia mašinų pardavinėt atvarė", locationId: "53" },
 ];
 
 const rawLocations = [
@@ -251,9 +271,88 @@ const rawLocations = [
     coords: [55.000445, 25.787335], media: [getMedia("20260131_155858.jpg")]
   },
   {
-    id: "32", title: "Šiandien", date: "2026-02-14", text: "Ir visada kartu. Myliu tave",
-    coords: [54.899480, 23.913723], 
-    media: [getMedia("Gemini_Generated_Image_bo4fuzbo4fuzbo4f.png"), getMedia("Gemini_Generated_Image_ihhv0sihhv0sihhv.png")]
+    id: "33", title: "Dviratininkai", date: "2026-04-18", text: "Ruošiamės tour de france",
+    coords: [54.894961, 23.772922], media: [getMedia("20260418_114757(0).jpg")]
+  },
+  {
+    id: "34", title: "Pasipuošę", date: "2026-04-18", text: "Su savo meile",
+    coords: [54.894933, 23.885392], media: [getMedia("20260418_172048.jpg")]
+  },
+  {
+    id: "35", title: "Naujas perukas", date: "2026-04-18", text: "Tik kakta išlindus",
+    coords: [54.895744, 23.889511], media: [getMedia("20260418_201905.jpg")]
+  },
+  {
+    id: "36", title: "Žuviukai", date: "2026-04-21", text: "Reik grįžt į akvariumą",
+    coords: [54.924886, 23.952761], media: [getMedia("20260421_122708.jpg")]
+  },
+  {
+    id: "37", title: "Alkana", date: "2026-04-28", text: "Tuoj mane suvalgys",
+    coords: [54.898139, 23.970331], media: [getMedia("20260428_160224.jpg")]
+  },
+  {
+    id: "38", title: "Cirkas", date: "2026-05-23", text: "Du klounai",
+    coords: [54.898167, 23.970431], media: [getMedia("20260523_221009.jpg")]
+  },
+  {
+    id: "39", title: "Pasivaikščiojimas", date: "2026-06-09", text: "Kartu leidžiam vasarą",
+    coords: [54.891206, 23.967914], media: [getMedia("20260609_165848.jpg")]
+  },
+  {
+    id: "40", title: "Baigtas univeras", date: "2026-06-26", text: "Naujas etapas kartu",
+    coords: [54.936072, 23.897517], media: [getMedia("20260626_201450.jpg")]
+  },
+  {
+    id: "41", title: "Rajoniniai", date: "2026-06-28", text: "Einam muštis",
+    coords: [54.924936, 23.952536], media: [getMedia("20260628_162412.jpg")]
+  },
+  {
+    id: "42", title: "Palangoj", date: "2026-07-08", text: "Ruošiamės treniruotei",
+    coords: [55.939442, 21.069433], media: [getMedia("20260708_100620.jpg")]
+  },
+  {
+    id: "43", title: "Prie jūros", date: "2026-07-09", text: "Degintis nepavyko",
+    coords: [55.902136, 21.050956], media: [getMedia("20260709_105013.jpg")]
+  },
+  {
+    id: "44", title: "Skrendam", date: "2026-08-01", text: "Sleepy sleepy",
+    coords: [50.58, 22.21], media: [getMedia("20260801_064051.jpg")]
+  },
+  {
+    id: "45", title: "Pusrytukai", date: "2026-08-01", text: "Tam agurkui šakės",
+    coords: [43.64, 33.80], media: [getMedia("20260801_083545.jpg")]
+  },
+  {
+    id: "46", title: "Nuostabūs vaizdai", date: "2026-08-02", text: "Kurių nesimato",
+    coords: [42.448422, 42.549064], media: [getMedia("20260802_111631.jpg")]
+  },
+  {
+    id: "47", title: "Plaukiam", date: "2026-08-02", text: "Šį kartą raktai liko",
+    coords: [42.457153, 42.374589], media: [getMedia("20260802_132406.jpg")]
+  },
+  {
+    id: "48", title: "Prie upės", date: "2026-08-02", text: "<3",
+    coords: [42.456333, 42.378422], media: [getMedia("20260802_134411.jpg")]
+  },
+  {
+    id: "49", title: "Urve", date: "2026-08-02", text: "Akys išpūstos",
+    coords: [42.376478, 42.600483], media: [getMedia("20260802_171154.jpg")]
+  },
+  {
+    id: "50", title: "Pradedam lipti", date: "2026-08-06", text: "Bet kelio neradom",
+    coords: [43.047983, 42.752411], media: [getMedia("20260806_100038.jpg")]
+  },
+  {
+    id: "51", title: "Meilė tarp kalnų", date: "2026-08-06", text: "Su tavim visur gera",
+    coords: [43.062933, 42.775553], media: [getMedia("20260806_110542.jpg")]
+  },
+  {
+    id: "52", title: "Džiaugiamės kalnais", date: "2026-08-07", text: "Naujas aukščio rekordas abiem",
+    coords: [43.086592, 42.706269], media: [getMedia("20260807_100120.jpg")]
+  },
+  {
+    id: "53", title: "Rainbow kalnai", date: "2026-08-11", text: "O Ignas čia mašinų pardavinėt atvarė",
+    coords: [41.447706, 45.375778], media: [getMedia("20260811_125628.jpg")]
   },
 ].filter(l => true); /* Keep all for timeline, filter for map separately */
 
