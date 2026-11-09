@@ -1,70 +1,38 @@
 :root {
-  /* Define cursor variable for reuse */
-  --cursor-heart: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="%23d34b6a" stroke="white" stroke-width="2"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>') 12 12, auto;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #392c2c;
+  background: #faf7f2;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  color-scheme: light;
+  --paper: #faf7f2;
+  --ink: #392c2c;
+  --wine: #813d50;
+  --muted: #786965;
+  --line: #e4dcd5;
+  --serif: 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
 }
-
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  min-height: 100vh;
-  background: radial-gradient(circle at top, #fff8f9 0%, #fce1e6 45%, #f7c3bd 100%);
-  color: #2b1b22;
-  font-family: "Georgia", "Times New Roman", serif;
-  line-height: 1.6;
-  /* Custom Cursor using an SVG data URI for a heart */
-  cursor: var(--cursor-heart);
-}
-
-/* Enforce custom cursor on interactive elements and potential overrides */
-a, button, [role="button"], input, label, select, textarea, .leaflet-container, .timeline-card, .leaflet-interactive {
-  cursor: var(--cursor-heart) !important;
-}
-
-/* Allow zoom-in specific override if strictly needed, otherwise force heart */
-/* .timeline-media { cursor: zoom-in !important; } - User asked for ALWAYS custom, but zoom-in provides utility. 
-   However, "becomes default" implies they dislike the arrow/hand. 
-   I will leave zoom-in alone in App.css for now as it's a specific action, 
-   but overriding pointer/default is the key. 
-*/
-
-/* Custom Scrollbar for entire site */
-::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
-}
-
-::-webkit-scrollbar-track {
-  background: #fff0f3;
-}
-
-::-webkit-scrollbar-thumb {
-  background-color: #d34b6a;
-  border-radius: 6px;
-  border: 3px solid #fff0f3; /* Creates padding effect */
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background-color: #b83156;
-}
-
-/* Custom Selection Color */
-::selection {
-  background: #d34b6a; /* Rose color */
-  color: #fff;
-}
-
-#root {
-  min-height: 100vh;
-}
-
-img {
-  max-width: 100%;
-  display: block;
-}
-
-p {
-  margin: 0;
+* { box-sizing: border-box; }
+html { scroll-padding-top: 24px; }
+body { margin: 0; min-width: 320px; }
+button, input, select, textarea { font: inherit; }
+button, a, input, label, select, textarea { -webkit-tap-highlight-color: transparent; }
+button, a { touch-action: manipulation; }
+button { cursor: pointer; }
+button:disabled { cursor: wait; opacity: .65; }
+a { color: inherit; }
+button, input, textarea, select { min-width: 0; }
+input, textarea, select { font-size: 16px; color: var(--ink); }
+:focus-visible { outline: 3px solid #813d50; outline-offset: 4px; }
+img, video { display: block; max-width: 100%; }
+img { height: auto; }
+h1, h2, h3, p, figure { margin: 0; }
+h1, h2, h3 { font-family: var(--serif); font-weight: 400; }
+p { line-height: 1.7; }
+::selection { background: #e8c9d1; color: #392c2c; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; }
 }

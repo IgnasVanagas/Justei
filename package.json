@@ -4,8 +4,13 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "predev": "node scripts/prepare-media.mjs",
     "dev": "vite",
+    "prebuild": "node scripts/prepare-media.mjs",
     "build": "vite build",
+    "test": "node --test",
+    "check:media": "node scripts/check-media.mjs",
+    "check:render": "node scripts/check-render.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },

@@ -1,212 +1,93 @@
-const env = globalThis.process?.env ?? {};
+import { createHash } from 'node:crypto';
+import { validateBooking } from '../shared/booking.js';
 
-const jsonResponse = (body, status = 200, headers = {}) => new Response(
-  JSON.stringify(body),
-  {
-    status,
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": "no-store",
-      ...headers,
-    },
-  },
-);
+const MAX_BODY = 16_384;
+const recipient = 'ignas.judo@gmail.com';
+const json = (data, status = 200, headers = {}) => Response.json(data, {
+  status, headers: { 'Cache-Control': 'no-store', ...headers },
+});
+const escapeHtml = (value) => value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;');
 
-const getCorsHeaders = (request) => {
-  const requestOrigin = request.headers.get("origin");
-  const allowedOrigin = env.BOOKING_ALLOWED_ORIGIN;
+async function readBody(request) {
+  if (Number(request.headers.get('content-length')) > MAX_BODY) throw new RangeError();
+  const reader = request.body?.getReader();
+  if (!reader) throw new SyntaxError();
+  const chunks = [];
+  let length = 0;
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      length += value.byteLength;
+      if (length > MAX_BODY) { await reader.cancel(); throw new RangeError(); }
+      chunks.push(value);
+    }
+  } finally { reader.releaseLock(); }
+  return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+}
 
-  if (!allowedOrigin || !requestOrigin) {
-    return {};
-  }
-
-  if (allowedOrigin !== "*" && requestOrigin !== allowedOrigin) {
-    return {};
-  }
-
-  return {
-    "Access-Control-Allow-Origin": allowedOrigin === "*" ? "*" : requestOrigin,
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-    Vary: "Origin",
-  };
-};
-
-const isValidDate = (value) => {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return false;
-  }
-
-  const parsedDate = new Date(`${value}T00:00:00Z`);
-  return !Number.isNaN(parsedDate.getTime())
-    && parsedDate.toISOString().slice(0, 10) === value;
-};
-
-const escapeHtml = (value) => value
-  .replaceAll("&", "&amp;")
-  .replaceAll("<", "&lt;")
-  .replaceAll(">", "&gt;")
-  .replaceAll('"', "&quot;")
-  .replaceAll("'", "&#039;");
-
-const sendTelegramNotification = async ({ date, time, activity, notes }) => {
-  const lines = [
-    "💌 Naujas pasimatymas!",
-    `📅 Data: ${date}`,
-    `🕒 Laikas: ${time}`,
-    `✨ Veikla: ${activity}`,
-  ];
-
-  if (notes) {
-    lines.push(`📝 Detalės: ${notes}`);
-  }
-
-  const response = await fetch(
-    `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: env.TELEGRAM_CHAT_ID,
-        text: lines.join("\n"),
-      }),
-    },
-  );
-  const result = await response.json().catch(() => ({}));
-
-  if (!response.ok || result.ok === false) {
-    throw new Error(`Telegram notification failed: ${result.description || response.status}`);
-  }
-};
-
-const sendEmailNotification = async ({ date, time, activity, notes }) => {
-  const safeDate = escapeHtml(date);
-  const safeTime = escapeHtml(time);
-  const safeActivity = escapeHtml(activity);
-  const safeNotes = notes ? escapeHtml(notes).replaceAll("\n", "<br />") : "Nepateikta";
-  const from = env.BOOKING_FROM_EMAIL
-    || "Pasimatymų rezervacija <onboarding@resend.dev>";
-
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${env.RESEND_API_KEY}`,
-      "Content-Type": "application/json",
-    },
+async function sendEmail(booking, env) {
+  const { date, time, activity, notes } = booking;
+  // Same payload on a retry uses the same provider key for 24 hours, including across cold starts.
+  const idempotency = createHash('sha256').update(JSON.stringify({ recipient, ...booking })).digest('hex');
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST', signal: AbortSignal.timeout(12_000),
+    headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json', 'Idempotency-Key': `date-${idempotency}` },
     body: JSON.stringify({
-      from,
-      to: [env.BOOKING_NOTIFICATION_EMAIL],
-      subject: `Naujas pasimatymas: ${date} ${time}`,
-      html: `
-        <div style="font-family: Georgia, serif; color: #2b1b22; line-height: 1.6">
-          <h1 style="color: #6b1f35">💌 Naujas pasimatymas!</h1>
-          <p><strong>Data:</strong> ${safeDate}</p>
-          <p><strong>Laikas:</strong> ${safeTime}</p>
-          <p><strong>Veikla:</strong> ${safeActivity}</p>
-          <p><strong>Detalės:</strong> ${safeNotes}</p>
-        </div>
-      `,
-      text: [
-        "Naujas pasimatymas!",
-        `Data: ${date}`,
-        `Laikas: ${time}`,
-        `Veikla: ${activity}`,
-        `Detalės: ${notes || "Nepateikta"}`,
-      ].join("\n"),
+      from: env.BOOKING_FROM_EMAIL || 'Mūsų pasimatymai <onboarding@resend.dev>',
+      to: [recipient],
+      subject: `Kvietimas į pasimatymą · ${date} ${time}`,
+      text: `Naujas kvietimas į pasimatymą!\n\nData: ${date}\nLaikas: ${time} (Europe/Vilnius)\nVeikla: ${activity}\nDetalės: ${notes || 'Nepateikta'}\n\nTai kvietimas — atsakymą susitarkite tarpusavyje.`,
+      html: `<div style="font-family:Georgia,serif;color:#392c2c;line-height:1.7"><h1 style="color:#813d50">Naujas kvietimas į pasimatymą ♡</h1><p><strong>Data:</strong> ${escapeHtml(date)}</p><p><strong>Laikas:</strong> ${escapeHtml(time)} (Lietuvos laiku)</p><p><strong>Veikla:</strong> ${escapeHtml(activity)}</p><p><strong>Detalės:</strong><br>${escapeHtml(notes || 'Nepateikta').replaceAll('\n', '<br>')}</p><p>Tai kvietimas — atsakymą susitarkite tarpusavyje.</p></div>`,
     }),
   });
-  const result = await response.json().catch(() => ({}));
+  const result = await response.json().catch(() => null);
+  if (!response.ok || !result?.id) throw new Error(`Email provider rejected request (${response.status})`);
+}
 
-  if (!response.ok) {
-    throw new Error(`Email notification failed: ${result.message || response.status}`);
-  }
-};
+async function sendTelegram(booking, env) {
+  const response = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    method: 'POST', signal: AbortSignal.timeout(4_000),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: env.TELEGRAM_CHAT_ID, text: `💌 Kvietimas į pasimatymą\n${booking.date} ${booking.time} (Lietuvos laiku)\n${booking.activity}\n${booking.notes}` }),
+  });
+  if (!response.ok) throw new Error('Telegram notification failed');
+}
 
+// Vercel Node.js Web Standard handler; secrets are read only on the server.
 export default {
   async fetch(request) {
-    const corsHeaders = getCorsHeaders(request);
-
-    if (request.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: corsHeaders });
-    }
-
-    if (request.method !== "POST") {
-      return jsonResponse({ error: "Leidžiamas tik POST metodas." }, 405, {
-        ...corsHeaders,
-        Allow: "POST, OPTIONS",
-      });
-    }
-
-    const contentLength = Number(request.headers.get("content-length") || 0);
-    if (contentLength > 16_384) {
-      return jsonResponse({ error: "Rezervacijos duomenys per dideli." }, 413, corsHeaders);
-    }
-
+    const env = process.env;
+    const origin = request.headers.get('origin');
+    const sameOrigin = new URL(request.url).origin;
+    const allowed = !origin || origin === sameOrigin || origin === env.BOOKING_ALLOWED_ORIGIN;
+    const cors = origin && allowed ? {
+      'Access-Control-Allow-Origin': origin, 'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type', Vary: 'Origin',
+    } : {};
+    if (!allowed) return json({ error: 'Ši svetainė negali siųsti kvietimų.' }, 403);
+    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
+    if (request.method !== 'POST') return json({ error: 'Leidžiamas tik POST metodas.' }, 405, { ...cors, Allow: 'POST, OPTIONS' });
+    if (!/^application\/json(?:\s*;|$)/i.test(request.headers.get('content-type') || '')) return json({ error: 'Reikalingas JSON formatas.' }, 415, cors);
     let payload;
-    try {
-      payload = await request.json();
-    } catch {
-      return jsonResponse({ error: "Neteisingas rezervacijos formatas." }, 400, corsHeaders);
+    try { payload = await readBody(request); }
+    catch (error) { return json({ error: error instanceof RangeError ? 'Kvietimo duomenys per dideli.' : 'Neteisingas kvietimo formatas.' }, error instanceof RangeError ? 413 : 400, cors); }
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return json({ error: 'Neteisingas kvietimo formatas.' }, 400, cors);
+    if (typeof payload.website === 'string' && payload.website.trim()) return json({ ok: true }, 200, cors);
+    const booking = Object.fromEntries(['date', 'time', 'activity', 'notes'].map((key) => [key, typeof payload[key] === 'string' ? payload[key].trim() : '']));
+    const error = validateBooking(booking);
+    if (error) return json({ error }, 400, cors);
+    if (!env.RESEND_API_KEY) return json({ error: 'Kvietimų siuntimas dar neįjungtas. Parašyk man el. paštu.' }, 503, cors);
+    try { await sendEmail(booking, env); }
+    catch (error) {
+      console.error('Booking email failed:', error.name);
+      return json({ error: 'Kvietimo išsiųsti nepavyko. Pabandyk dar kartą arba parašyk el. paštu.' }, 502, cors);
     }
-
-    if (typeof payload.website === "string" && payload.website.trim()) {
-      return jsonResponse({ ok: true }, 200, corsHeaders);
-    }
-
-    const date = typeof payload.date === "string" ? payload.date.trim() : "";
-    const time = typeof payload.time === "string" ? payload.time.trim() : "";
-    const activity = typeof payload.activity === "string" ? payload.activity.trim() : "";
-    const notes = typeof payload.notes === "string" ? payload.notes.trim() : "";
-
-    if (!isValidDate(date) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) {
-      return jsonResponse({ error: "Pasirinkite tinkamą datą ir laiką." }, 400, corsHeaders);
-    }
-
-    if (!activity || activity.length > 100 || notes.length > 1000) {
-      return jsonResponse({ error: "Patikrinkite veiklą ir papildomas detales." }, 400, corsHeaders);
-    }
-
-    const booking = { date, time, activity, notes };
-    const notificationTasks = [];
-
+    // Optional secondary channel must never mask a failed email or invalidate a sent one.
     if (env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_CHAT_ID) {
-      notificationTasks.push({
-        channel: "telegram",
-        promise: sendTelegramNotification(booking),
-      });
+      try { await sendTelegram(booking, env); }
+      catch { console.error('Optional booking Telegram notification failed'); }
     }
-
-    if (env.RESEND_API_KEY && env.BOOKING_NOTIFICATION_EMAIL) {
-      notificationTasks.push({
-        channel: "email",
-        promise: sendEmailNotification(booking),
-      });
-    }
-
-    if (notificationTasks.length === 0) {
-      return jsonResponse({
-        error: "Pranešimų kanalas dar nesukonfigūruotas.",
-      }, 503, corsHeaders);
-    }
-
-    const results = await Promise.allSettled(
-      notificationTasks.map(({ promise }) => promise),
-    );
-    const sentChannels = results.flatMap((result, index) => (
-      result.status === "fulfilled" ? [notificationTasks[index].channel] : []
-    ));
-    const failedResults = results.filter((result) => result.status === "rejected");
-
-    failedResults.forEach((result) => {
-      console.error(result.reason);
-    });
-
-    if (sentChannels.length === 0) {
-      return jsonResponse({
-        error: "Pranešimo išsiųsti nepavyko. Pabandykite dar kartą.",
-      }, 502, corsHeaders);
-    }
-
-    return jsonResponse({ ok: true, channels: sentChannels }, 200, corsHeaders);
+    return json({ ok: true, channels: ['email'] }, 200, cors);
   },
 };
